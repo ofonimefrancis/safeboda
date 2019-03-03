@@ -11,6 +11,7 @@ import (
 	"github.com/ofonimefrancis/safeboda/common/config"
 	"github.com/ofonimefrancis/safeboda/common/log"
 	"github.com/ofonimefrancis/safeboda/common/mgo"
+	"github.com/ofonimefrancis/safeboda/features/promo"
 )
 
 func main() {
@@ -28,7 +29,9 @@ func main() {
 		r.Use(mgo.DBConnectionMiddleware(database))
 
 		log.Info("Registering features...")
-
+		promoHandler := promo.NewHandler(initContext, database)
+		promoFacade := promo.NewFacade(promoHandler)
+		promoFacade.RegisterRoute(r.Group(promo.BasePath))
 		finishInit()
 		return http.ListenAndServe(fmt.Sprintf(":%d", argv.Port), r)
 	})
