@@ -8,7 +8,7 @@ import (
 )
 
 func GenerateRandomToken() string {
-	token := make([]byte, 9)
+	token := make([]byte, 6)
 	must.DoF(func() error {
 		_, err := rand.Read(token)
 		return err

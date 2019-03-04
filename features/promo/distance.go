@@ -83,7 +83,7 @@ func calculateDistanceToEvent(request validatePromo, originCoord Coordinate, eve
 
 	if distance > float64(promo.Radius) {
 		log.Println("User is not within the event location")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "You are not withing the event radius"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "You are not within the event radius"})
 		return
 	}
 

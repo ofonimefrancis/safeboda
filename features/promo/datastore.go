@@ -136,23 +136,27 @@ func (datastore *DatastoreSession) GetPromo(code string) (Promo, error) {
 	return promo, nil
 }
 
+func (datastore *DatastoreSession) UpdateRadius(promo Promo, radius int) error {
+	return datastore.promo().Update(bson.M{"code": promo.Code}, bson.M{"radius": radius})
+}
+
 func (datastore *DatastoreSession) GetAllActivePromos(page string) ([]Promo, error) {
 	var promos []Promo
-	//var pageInt int
+	var pageInt int
 
 	if page == "" {
 		pageInt, err := strconv.Atoi(page)
 		if err != nil {
 			log.Info("Error converting from string to integer. Setting pageInt to default value of 1")
-			//pageInt = 1
+			pageInt = 1
 			log.Info(pageInt)
 		}
 	}
 
-	//pageSize := 20
-	//offset := pageSize * (pageInt - 1)
+	pageSize := 20
+	offset := pageSize * pageInt
 
-	if err := datastore.promo().Find(bson.M{"isactive": true}).All(&promos); err != nil { ////.Skip(offset).Limit(pageSize).All(&promos);
+	if err := datastore.promo().Find(bson.M{"isactive": true}).Skip(offset).Limit(pageSize).All(&promos); err != nil {
 		return promos, err
 	}
 	return promos, nil
@@ -180,7 +184,7 @@ func (datastore *DatastoreSession) DeactivatePromoCode(code string) error {
 
 func (datastore *DatastoreSession) GetAllPromos(page string) ([]Promo, error) {
 	var promos []Promo
-	//var pageInt int
+	var pageInt int
 
 	if page == "" {
 		pageInt, err := strconv.Atoi(page)
@@ -192,10 +196,10 @@ func (datastore *DatastoreSession) GetAllPromos(page string) ([]Promo, error) {
 		}
 	}
 
-	// pageSize := 20
-	// offset := pageSize * (pageInt - 1)
+	pageSize := 20
+	offset := pageSize * pageInt
 
-	err := datastore.promo().Find(bson.M{}).All(&promos) //.Skip(offset).Limit(pageSize).All(&promos)
+	err := datastore.promo().Find(bson.M{}).Skip(offset).Limit(pageSize).All(&promos)
 	if err != nil {
 		return promos, err
 	}

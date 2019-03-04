@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -25,11 +26,12 @@ type facade struct {
 }
 
 type eventPayload struct {
-	ID         bson.ObjectId `json:"_id"`
-	Name       string        `json:"name"`
-	Address    string        `json:"address"`
-	Coordinate Coordinate    `json:"coordinate"`
-	CreatedAt  time.Time     `json:"created_at"`
+	ID        bson.ObjectId `json:"_id"`
+	Name      string        `json:"name"`
+	Address   string        `json:"address"`
+	Latitude  float64       `json:"latitude"`
+	Longitude float64       `json:"longitude"`
+	CreatedAt time.Time     `json:"created_at"`
 }
 
 type promoPayload struct {
@@ -104,7 +106,6 @@ func (facade *facade) RegisterRoute(r *gin.RouterGroup) {
 		}
 
 		ds := facade.promoHandler.datastore.OpenSession(context.Background())
-
 		if ds.EventAlreadyExists(requestBody.Name) {
 			log.Info("Event already exists..")
 			c.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Event Already exists."})
@@ -116,7 +117,8 @@ func (facade *facade) RegisterRoute(r *gin.RouterGroup) {
 		event.ID = bson.NewObjectId()
 		event.Name = requestBody.Name
 		event.Address = requestBody.Address
-		event.Coordinate = requestBody.Coordinate
+		event.Coordinate.Lat = requestBody.Latitude
+		event.Coordinate.Lng = requestBody.Longitude
 		event.CreatedAt = time.Now()
 
 		if err := ds.NewEvent(event); err != nil {
@@ -128,8 +130,8 @@ func (facade *facade) RegisterRoute(r *gin.RouterGroup) {
 		return
 	})
 
+	//Adds a new Promo for an event with (event_id)
 	r.POST("/new/:event_id", func(c *gin.Context) {
-		//Add a new Promo
 		eventParam := c.Param("event_id")
 		var eventObjectID bson.ObjectId
 		var requestBody map[string]interface{}
@@ -156,7 +158,7 @@ func (facade *facade) RegisterRoute(r *gin.RouterGroup) {
 			promo.IsActive = true
 			promo.IsExpired = false
 			promo.EventID = eventObjectID
-			promo.Code = common.GenerateRandomToken()
+			promo.Code = fmt.Sprintf("SAFE-%s", common.GenerateRandomToken())
 			if err := ds.NewPromo(promo); err != nil {
 				log.Info("Error creating a new promo code")
 				log.Info(err)
@@ -184,6 +186,7 @@ func (facade *facade) RegisterRoute(r *gin.RouterGroup) {
 		c.JSON(http.StatusOK, gin.H{"message": "Promo code deactivated"})
 	})
 
+	//Validate the code, origin and destination
 	r.POST("/validate", func(c *gin.Context) {
 		ds := facade.promoHandler.datastore.OpenSession(context.Background())
 
@@ -210,11 +213,10 @@ func (facade *facade) RegisterRoute(r *gin.RouterGroup) {
 		promo, err := ds.GetPromo(requestBody.Code)
 		if err != nil {
 			log.Info("Can't find promo with specified code")
-			c.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Can't find Promo with code"})
+			c.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Can't find Promo with that code"})
 			return
 		}
 
-		log.Infof("Event ID %s", promo.EventID)
 		event, err := ds.GetEvent(promo.EventID)
 		if err != nil {
 			log.Info("Error retrieving event")
@@ -226,5 +228,44 @@ func (facade *facade) RegisterRoute(r *gin.RouterGroup) {
 		originCoordinates := GetAddressCoordinate(requestBody.Origin)
 
 		calculateDistanceToEvent(requestBody, originCoordinates, event, promo, c)
+	})
+
+	//Configure the radius of an event
+	r.POST("/configure/radius", func(c *gin.Context) {
+		var requestBody map[string]string
+		if err := c.Bind(&requestBody); err != nil {
+			log.Info("Error decoding json into struct")
+			c.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Something went wrong"})
+			return
+		}
+
+		newRadius, err := strconv.Atoi(requestBody["radius"])
+		if err != nil {
+			log.Info("Error converting from string to integer")
+			c.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Something went wrong"})
+			return
+		}
+		promoCode := requestBody["code"]
+		ds := facade.promoHandler.datastore.OpenSession(context.Background())
+		promo, err := ds.GetPromo(promoCode)
+		if err != nil {
+			log.Info("Error retrieving promo with the specified code")
+			c.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Error retrieving promo"})
+			return
+		}
+
+		if !promo.IsActive || promo.IsExpired {
+			log.Info("Invalid Promo Code")
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Promo code is either Inactive or Expired"})
+			return
+		}
+
+		err = ds.UpdateRadius(promo, newRadius)
+		if err != nil {
+			log.Info("Error updating radius")
+			c.JSON(http.StatusInternalServerError, common.ErrorResponse{Message: "Error occurred while updating radius"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Radius updated"})
 	})
 }
