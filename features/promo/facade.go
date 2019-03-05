@@ -35,10 +35,12 @@ type eventPayload struct {
 }
 
 type promoPayload struct {
-	ID     bson.ObjectId `json:"_id"`
-	Code   string        `json:"code"`
-	Radius float64       `json:"radius"`
-	Amount float64       `json:"amount"`
+	ID             bson.ObjectId `json:"_id"`
+	Code           string        `json:"code"`
+	Radius         int           `json:"radius"`
+	Amount         float64       `json:"amount"`
+	EventID        string        `json:"event_id"`
+	ExpirationDate time.Time     `json:"expiration_date"`
 }
 
 type validatePromo struct {
@@ -97,7 +99,8 @@ func (facade *facade) RegisterRoute(r *gin.RouterGroup) {
 		c.JSON(http.StatusOK, activePromos)
 	})
 
-	r.POST("/event/new", func(c *gin.Context) {
+	//Create a new Event
+	r.POST("/event", func(c *gin.Context) {
 		var requestBody eventPayload
 		if err := c.Bind(&requestBody); err != nil {
 			log.Info("[New Event] Error decoding json into payload struct")
@@ -131,10 +134,9 @@ func (facade *facade) RegisterRoute(r *gin.RouterGroup) {
 	})
 
 	//Adds a new Promo for an event with (event_id)
-	r.POST("/new/:event_id", func(c *gin.Context) {
-		eventParam := c.Param("event_id")
+	r.POST("/new", func(c *gin.Context) {
 		var eventObjectID bson.ObjectId
-		var requestBody map[string]interface{}
+		var requestBody promoPayload
 
 		if err := c.Bind(&requestBody); err != nil {
 			log.Info("[New PromoCode] Error decoding json into payload struct")
@@ -143,17 +145,17 @@ func (facade *facade) RegisterRoute(r *gin.RouterGroup) {
 		}
 
 		ds := facade.promoHandler.datastore.OpenSession(context.Background())
-		if !bson.IsObjectIdHex(eventParam) {
+		if !bson.IsObjectIdHex(requestBody.EventID) {
 			c.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid Event ID"})
 			return
 		}
-		eventObjectID = bson.ObjectIdHex(eventParam)
+		eventObjectID = bson.ObjectIdHex(requestBody.EventID)
 
 		var promo Promo
 		if !ds.PromoLinkedToEvent(eventObjectID) {
-			promo.Radius = requestBody["radius"].(int)
-			promo.Amount = requestBody["amount"].(float64)
-			promo.ExpirationDate, _ = common.ParseTime(requestBody["expiration_date"].(string)) //Treat err
+			promo.Radius = requestBody.Radius
+			promo.Amount = requestBody.Amount
+			promo.ExpirationDate, _ = common.ParseTime(requestBody.ExpirationDate.String()) //Treat err
 			promo.ID = bson.NewObjectId()
 			promo.IsActive = true
 			promo.IsExpired = false
@@ -174,10 +176,16 @@ func (facade *facade) RegisterRoute(r *gin.RouterGroup) {
 		return
 	})
 
-	r.GET("/deactivate/:code", func(c *gin.Context) {
-		code := c.Param("code")
+	r.POST("/deactivate", func(c *gin.Context) {
+		var requestBody map[string]string
+		if err := c.Bind(&requestBody); err != nil {
+			log.Info("Error decoding payload")
+			c.JSON(http.StatusBadRequest, common.ErrorResponse{Message: "Invalid payload"})
+			return
+		}
+
 		ds := facade.promoHandler.datastore.OpenSession(context.Background())
-		if err := ds.DeactivatePromoCode(code); err != nil {
+		if err := ds.DeactivatePromoCode(requestBody["code"]); err != nil {
 			log.Info(err)
 			c.JSON(http.StatusBadRequest, common.ErrorResponse{Message: err.Error()})
 			return

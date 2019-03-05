@@ -37,6 +37,5 @@ func getDataStoreSession() *promo.DatastoreSession {
 	initContext := context.Background()
 	datastore := promo.NewDatastore(initContext, mgo.New(mongoHost, mongoDB))
 	ds := datastore.OpenSession(initContext)
-
 	return ds
 }

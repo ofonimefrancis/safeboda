@@ -156,7 +156,7 @@ func (datastore *DatastoreSession) GetAllActivePromos(page string) ([]Promo, err
 	pageSize := 20
 	offset := pageSize * pageInt
 
-	if err := datastore.promo().Find(bson.M{"isactive": true}).Skip(offset).Limit(pageSize).All(&promos); err != nil {
+	if err := datastore.promo().Find(bson.M{"isactive": true, "isexpired": false}).Skip(offset).Limit(pageSize).All(&promos); err != nil {
 		return promos, err
 	}
 	return promos, nil
@@ -190,14 +190,13 @@ func (datastore *DatastoreSession) GetAllPromos(page string) ([]Promo, error) {
 		pageInt, err := strconv.Atoi(page)
 		if err != nil {
 			log.Info("Error converting from string to integer. Setting pageInt to default value of 1")
-			log.Info(err)
 			pageInt = 1
 			log.Info(pageInt)
 		}
 	}
 
 	pageSize := 20
-	offset := pageSize * pageInt
+	offset := pageSize * pageInt //Ideally  pageSize * (pageInt -1)
 
 	err := datastore.promo().Find(bson.M{}).Skip(offset).Limit(pageSize).All(&promos)
 	if err != nil {

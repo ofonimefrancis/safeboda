@@ -20,6 +20,7 @@ func main() {
 		initContext, finishInit := context.WithCancel(context.Background())
 
 		r := gin.Default()
+		gin.SetMode(gin.ReleaseMode)
 
 		r.Use(common.EnsureHTTPVersion())
 		r.Use(common.SecureHeaders())
