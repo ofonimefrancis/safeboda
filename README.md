@@ -53,6 +53,27 @@ To run the code on port :5000 run the command
       curl -i -X POST -H 'Content-Type: application/json' -d '{"code": "SAFE-4b71aa34e96d","origin": "Grand Global Hotel, Uganda","destination" : "Serena Musa, Uganda"}' http://localhost:5000/promo/validate
     ```
 
+    Response 
+    ```json
+    {
+      "polyline":"uu_AcmweEcAjG",
+      "promo_details": { 
+        "id":"5c7d7c8463f44c9b5233478f", 
+        "code":"SAFE-4b71aa34e96d", 
+        "radius":1179, 
+        "amount":1900, 
+        "expiration_date":"0001-01-01T00:00:00Z", 
+        "isexpired":false, 
+        "isactive":true, 
+        "event": { 
+          "event_id":"5c7d792763f44c82858f55ac",
+          "name":"Grand Global Hotel", 
+          "address":"Grand Global Hotel, Kampala, Uganda","lat":0.3316466,"lng":32.5641206
+        }
+      }
+    }
+    ```
+
 5. Retrieve all promos
 
     ```bash
