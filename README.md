@@ -1,10 +1,9 @@
 # SafeBoda PromoCode
-SafeBoda want to give out promo codes worth x amount during events so people can get
-free rides to and from the event. The flaw with that is people can use the promo codes without
-going for the event.
+This application uses `go` and `mongodb`. To get started you'd need to install go on your system and also get the mongodb server running. `gin-gonic` is used as the router and micro framework for handling request and configuring the middleware layer of the application.
 
-# Flags for setting up project 
-Running `go run main.go --help` from the root of the directory will output as is below
+
+# Set project flags
+Running `go run main.go --help` from the root of the directory will output as is below. There are already default flags set, but just incase.
 
 ```sh
 Options:
