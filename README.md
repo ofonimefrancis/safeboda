@@ -5,6 +5,8 @@ This application uses `go` and `mongodb`. To get started you'd need to install g
 # Set project flags
 Running `go run main.go --help` from the root of the directory will output as is below. There are already default flags set, but just incase.
 
+Run `go get -d -v` to get all the dependencies
+
 ```sh
 Options:
 

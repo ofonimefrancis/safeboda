@@ -34,6 +34,7 @@ func main() {
 		promoFacade := promo.NewFacade(promoHandler)
 		promoFacade.RegisterRoute(r.Group(promo.BasePath))
 		finishInit()
+
 		return http.ListenAndServe(fmt.Sprintf(":%d", argv.Port), r)
 	})
 }
